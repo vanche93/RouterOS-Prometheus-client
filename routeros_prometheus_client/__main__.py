@@ -16,12 +16,14 @@ class RosApi:
         self.routerboard_name = kwargs.pop('routerboard_name')
         self.connection = routeros_api.RouterOsApiPool(**kwargs)
         self.api = self.connection.get_api()
+        if self.connection.connected is False:
+            raise Exception(f'{self.routerboard_name} is not connected.')
 
     def create_list_dictionaries(self, dicts):
         new_list = []
         for d in dicts:
             new_dict = {'routerboard_name': self.routerboard_name}
-            for key in d:
+            for key, value in d.items():
                 new_dict[key.replace('-', '_')] = d.get(key)
             new_list.append(new_dict)
         return new_list
@@ -137,19 +139,15 @@ class RouterOSCollector(object):
     @staticmethod
     def create_info_collector(name, info, dicts, labels=[]):
         labels.append('routerboard_name')
-        if type(dicts) is dict:
-            labels_values = {}
-            for label in labels:
-                labels_values[label] = dicts.get(label)
-            collector = InfoMetricFamily(f'routeros_{name}', info)
-            collector.add_metric(labels, labels_values)
-            return collector
         if type(dicts) is list:
             collector = InfoMetricFamily(f'routeros_{name}', info)
             for d in dicts:
                 labels_values = {}
                 for label in labels:
-                    labels_values[label] = d.get(label)
+                    if d.get(label):
+                        labels_values[label] = d.get(label)
+                    else:
+                        labels_values[label] = ''
                 collector.add_metric(labels, labels_values)
             return collector
         else:
