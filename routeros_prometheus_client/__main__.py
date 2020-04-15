@@ -48,6 +48,13 @@ class RosApi:
         count = [{'count': len(self.dhcp_lease())}]
         return self.create_list_dictionaries(count)
 
+    def dhcp_bound_lease_count(self):
+        count = 0
+        for d in self.dhcp_lease():
+            if d.get('status') == 'bound':
+                count = count + 1
+        return self.create_list_dictionaries([{'count': count}])
+
     @staticmethod
     def parse_uptime(time):
         time = match(r'((?P<weeks>\d+)w)?((?P<days>\d+)d)?((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?',
@@ -167,7 +174,6 @@ class RouterOSCollector(object):
         system_resource = self.get(RosApi.system_resource)
         health = self.get(RosApi.health)
         l2tp_server_count = self.get(RosApi.l2tp_server_count)
-        dhcp_lease_count = self.get(RosApi.dhcp_lease_count)
         yield self.create_gauge_collector('rx_bits_per_second', 'rx_bits_per_second from monitor_traffic',
                                           interface_traffic, 'rx_bits_per_second', ['name'])
         yield self.create_gauge_collector('tx_bits_per_second', 'tx_bits_per_second from monitor_traffic',
@@ -189,7 +195,11 @@ class RouterOSCollector(object):
         yield self.create_gauge_collector('uptime', 'uptime(seconds)', system_resource, 'uptime')
         yield self.create_gauge_collector('routerboard_voltage', 'routerboard_voltage', health, 'voltage')
         yield self.create_gauge_collector('routerboard_temperature', 'routerboard_temperature', health, 'temperature')
-        yield self.create_gauge_collector('dhcp_lease_count', 'dhcp_lease_count', dhcp_lease_count, 'count')
+        yield self.create_gauge_collector('dhcp_lease_count', 'dhcp_lease_count', self.get(RosApi.dhcp_lease_count),
+                                          'count')
+        yield self.create_gauge_collector('dhcp_bound_lease_count', 'dhcp_bound_lease_count',
+                                          self.get(RosApi.dhcp_bound_lease_count),
+                                          'count')
         # info
         yield self.create_info_collector('system_identity', 'system_identity', self.get(RosApi.system_identity),
                                          ['name'])
