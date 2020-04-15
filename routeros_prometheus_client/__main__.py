@@ -224,7 +224,7 @@ def main():
     parser.add_argument('-p', '--port', dest='port', type=int, required=True, help='HTTPServer port')
     args = parser.parse_args()
     REGISTRY.register(RouterOSCollector(nodes=config_read(args.config)))
-    run()
+    run(port=args.port)
 
 
 if __name__ == '__main__':
