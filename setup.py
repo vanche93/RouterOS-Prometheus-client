@@ -11,7 +11,7 @@ def get_long_description():
 
 setup(
     name='RouterOS-Prometheus-client',
-    version='0.0.1',
+    version='0.0.2',
     license='MIT',
     url='https://github.com/vanche93/RouterOS-Prometheus-client',
     author='Ivan Burashev',
