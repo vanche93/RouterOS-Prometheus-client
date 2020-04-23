@@ -14,10 +14,21 @@ class RosApi:
 
     def __init__(self, **kwargs):
         self.routerboard_name = kwargs.pop('routerboard_name')
-        self.connection = routeros_api.RouterOsApiPool(**kwargs)
-        self.api = self.connection.get_api()
-        if self.connection.connected is False:
-            raise Exception(f'{self.routerboard_name} is not connected.')
+        try:
+            self.connection = routeros_api.RouterOsApiPool(**kwargs)
+            self.connection.socket_timeout = 1
+            self.api = self.connection.get_api()
+        except routeros_api.exceptions.RouterOsApiConnectionError as e:
+            raise ConnectionError(f'{self.routerboard_name} is not connected: {e}')
+
+    def reconnect(self):
+        try:
+            if self.connection.connected is False:
+                print(f'Try connect to {self.routerboard_name}')
+                self.api = self.connection.get_api()
+                print(f'Connected to {self.routerboard_name}')
+        except routeros_api.exceptions.RouterOsApiConnectionError as e:
+            print(f'{self.routerboard_name} is not connected: {e}')
 
     def create_list_dictionaries(self, dicts):
         new_list = []
@@ -163,8 +174,16 @@ class RouterOSCollector(object):
     def get(self, func):
         output = []
         for r in self.__dict__.values():
-            output = output + func(r)
+            try:
+                if r.connection.connected:
+                    output = output + func(r)
+            except routeros_api.exceptions.RouterOsApiConnectionError:
+                pass
         return output
+
+    def reconnect(self):
+        for r in self.__dict__.values():
+            r.reconnect()
 
     def collect(self):
         # metrics
@@ -205,6 +224,7 @@ class RouterOSCollector(object):
                                          ['name'])
         yield self.create_info_collector('routerboard', 'routerboard_info', self.get(RosApi.routerboard),
                                          list(self.get(RosApi.routerboard)[0].keys()))
+        self.reconnect()
 
 
 def run(server_class=HTTPServer,
