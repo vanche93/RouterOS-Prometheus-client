@@ -15,6 +15,11 @@ class RosApi:
 
     def __init__(self, **kwargs):
         self.routerboard_name = kwargs.pop('routerboard_name')
+        self.interface = kwargs.pop('interface')
+        self.wireless = kwargs.pop('wireless')
+        self.caps_man = kwargs.pop('caps_man')
+        self.l2tp = kwargs.pop('l2tp')
+        self.gre = kwargs.pop('gre')
         try:
             self.connection = routeros_api.RouterOsApiPool(**kwargs)
             self.connection.socket_timeout = 1
@@ -85,11 +90,12 @@ class RosApi:
 
     def interface_traffic(self):
         interface_traffic_list = []
-        for interface in self.interface_list():
-            if interface['running'] == 'true':
-                traffic = self.api.get_resource('/interface').call('monitor-traffic',
-                                                                   {'interface': interface['name'], 'once': ''})[0]
-                interface_traffic_list.append(traffic)
+        if self.interface == 'True':
+            for interface in self.interface_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    interface_traffic_list.append(traffic)
         return self.create_list_dictionaries(interface_traffic_list)
 
     def interface_list(self):
@@ -97,46 +103,41 @@ class RosApi:
         return interface_list
 
     def caps_man_interface_list(self):
-        interface_list = []
-        try:
-            interface_list = self.api.get_resource('/caps-man/interface').get()
-        except routeros_api.exceptions.RouterOsApiCommunicationError:
-            pass
+        interface_list = self.api.get_resource('/caps-man/interface').get()
         return interface_list
 
     def caps_man_traffic(self):
         caps_man_traffic_list = []
-        for interface in self.caps_man_interface_list():
-            if interface['running'] == 'true':
-                traffic = self.api.get_resource('/interface').call('monitor-traffic',
-                                                                   {'interface': interface['name'], 'once': ''})[0]
-                caps_man_traffic_list.append(traffic)
+        if self.caps_man == 'True':
+            for interface in self.caps_man_interface_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    caps_man_traffic_list.append(traffic)
         return self.create_list_dictionaries(caps_man_traffic_list)
 
     def wireless_interface_list(self):
-        interface_list = []
-        try:
-            interface_list = self.api.get_resource('/interface/wireless').get()
-        except routeros_api.exceptions.RouterOsApiCommunicationError:
-            pass
+        interface_list = self.api.get_resource('/interface/wireless').get()
         return interface_list
 
     def wireless_traffic(self):
         wireless_traffic_list = []
-        for interface in self.wireless_interface_list():
-            if interface['running'] == 'true':
-                traffic = self.api.get_resource('/interface').call('monitor-traffic',
-                                                                   {'interface': interface['name'], 'once': ''})[0]
-                wireless_traffic_list.append(traffic)
+        if self.wireless == 'True':
+            for interface in self.wireless_interface_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    wireless_traffic_list.append(traffic)
         return self.create_list_dictionaries(wireless_traffic_list)
 
     def gre_traffic(self):
         gre_traffic_list = []
-        for interface in self.gre_list():
-            if interface['running'] == 'true':
-                traffic = self.api.get_resource('/interface').call('monitor-traffic',
-                                                                   {'interface': interface['name'], 'once': ''})[0]
-                gre_traffic_list.append(traffic)
+        if self.gre == 'True':
+            for interface in self.gre_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    gre_traffic_list.append(traffic)
         return self.create_list_dictionaries(gre_traffic_list)
 
     def gre_list(self):
@@ -145,11 +146,12 @@ class RosApi:
 
     def l2tp_server_traffic(self):
         l2tp_server_traffic_list = []
-        for interface in self.l2tp_server_list():
-            if interface['running'] == 'true':
-                traffic = self.api.get_resource('/interface').call('monitor-traffic',
-                                                                   {'interface': interface['name'], 'once': ''})[0]
-                l2tp_server_traffic_list.append(traffic)
+        if self.l2tp == 'True':
+            for interface in self.l2tp_server_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    l2tp_server_traffic_list.append(traffic)
         return self.create_list_dictionaries(l2tp_server_traffic_list)
 
     def l2tp_server_list(self):
@@ -157,7 +159,9 @@ class RosApi:
         return interface_list
 
     def l2tp_server_count(self):
-        count = [{'count': len(self.l2tp_server_list())}]
+        count = []
+        if self.l2tp == 'True':
+            count = [{'count': len(self.l2tp_server_list())}]
         return self.create_list_dictionaries(count)
 
 

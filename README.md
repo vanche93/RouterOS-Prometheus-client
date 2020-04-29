@@ -31,12 +31,22 @@ host = 192.168.1.1
 username = login
 password = password
 plaintext_login = True
+interface = True
+wireless = False
+caps_man = True
+l2tp = True
+gre = True
 
 [my_second_router]
 host = 192.168.1.2
 username = login
 password = password
 plaintext_login = True
+interface = True
+wireless = True
+caps_man = False
+l2tp = False
+gre = False
 ```
 * `[section]` - String - Used for identification device
 * `host` - String - Hostname or IP of device
@@ -48,6 +58,7 @@ plaintext_login = True
 * `ssl_verify` - Boolean - Verify the SSL certificate? - Default True
 * `ssl_verify_hostname` - Boolean - Verify the SSL certificate hostname matches? - Default True
 * `ssl_context` - Object - Pass in a custom SSL context object. Overrides other options. - Default None
+* `interface` `wireless` `caps_man` `l2tp` `gre` - What metrics to collect
 
 #### Start routeros-prometheus-client
 `routeros-prometheus-client -c routeros-prometheus-client\config.ini -p 8000`
