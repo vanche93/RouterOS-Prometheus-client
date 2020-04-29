@@ -263,7 +263,9 @@ class RouterOSCollector(object):
         yield self.create_info_collector('system_identity', 'system_identity', self.get(RosApi.system_identity),
                                          ['name'])
         yield self.create_info_collector('routerboard', 'routerboard_info', self.get(RosApi.routerboard),
-                                         list(self.get(RosApi.routerboard)[0].keys()))
+                                         ['routerboard_name', 'routerboard', 'board_name', 'model', 'serial_number',
+                                          'firmware_type', 'factory_firmware', 'current_firmware', 'upgrade_firmware']
+                                         )
         self.reconnect()
 
 
