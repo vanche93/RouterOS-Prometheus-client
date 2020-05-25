@@ -95,6 +95,8 @@ class RosApi:
                 if interface['running'] == 'true':
                     traffic = self.api.get_resource('/interface').call('monitor-traffic',
                                                                        {'interface': interface['name'], 'once': ''})[0]
+                    if interface.get('comment'):
+                        traffic['name'] = f'''{interface['name']}({interface['comment']})'''
                     interface_traffic_list.append(traffic)
         return self.create_list_dictionaries(interface_traffic_list)
 
