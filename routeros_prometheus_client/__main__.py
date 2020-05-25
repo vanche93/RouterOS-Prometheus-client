@@ -8,12 +8,18 @@ from datetime import timedelta
 from http.server import HTTPServer
 from prometheus_client import MetricsHandler
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY, InfoMetricFamily
+from prometheus_client import start_http_server
 
 
 class RosApi:
 
     def __init__(self, **kwargs):
         self.routerboard_name = kwargs.pop('routerboard_name')
+        self.interface = kwargs.pop('interface')
+        self.wireless = kwargs.pop('wireless')
+        self.caps_man = kwargs.pop('caps_man')
+        self.l2tp = kwargs.pop('l2tp')
+        self.gre = kwargs.pop('gre')
         try:
             self.connection = routeros_api.RouterOsApiPool(**kwargs)
             self.connection.socket_timeout = 1
@@ -84,24 +90,56 @@ class RosApi:
 
     def interface_traffic(self):
         interface_traffic_list = []
-        for interface in self.interface_list():
-            if interface['running'] == 'true':
-                traffic = self.api.get_resource('/interface').call('monitor-traffic',
-                                                                   {'interface': interface['name'], 'once': ''})[0]
-                interface_traffic_list.append(traffic)
+        if self.interface == 'True':
+            for interface in self.interface_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    if interface.get('comment'):
+                        traffic['name'] = f'''{interface['name']}({interface['comment']})'''
+                    interface_traffic_list.append(traffic)
         return self.create_list_dictionaries(interface_traffic_list)
 
     def interface_list(self):
         interface_list = self.api.get_resource('/interface/ethernet').get()
         return interface_list
 
+    def caps_man_interface_list(self):
+        interface_list = self.api.get_resource('/caps-man/interface').get()
+        return interface_list
+
+    def caps_man_traffic(self):
+        caps_man_traffic_list = []
+        if self.caps_man == 'True':
+            for interface in self.caps_man_interface_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    caps_man_traffic_list.append(traffic)
+        return self.create_list_dictionaries(caps_man_traffic_list)
+
+    def wireless_interface_list(self):
+        interface_list = self.api.get_resource('/interface/wireless').get()
+        return interface_list
+
+    def wireless_traffic(self):
+        wireless_traffic_list = []
+        if self.wireless == 'True':
+            for interface in self.wireless_interface_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    wireless_traffic_list.append(traffic)
+        return self.create_list_dictionaries(wireless_traffic_list)
+
     def gre_traffic(self):
         gre_traffic_list = []
-        for interface in self.gre_list():
-            if interface['running'] == 'true':
-                traffic = self.api.get_resource('/interface').call('monitor-traffic',
-                                                                   {'interface': interface['name'], 'once': ''})[0]
-                gre_traffic_list.append(traffic)
+        if self.gre == 'True':
+            for interface in self.gre_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    gre_traffic_list.append(traffic)
         return self.create_list_dictionaries(gre_traffic_list)
 
     def gre_list(self):
@@ -110,11 +148,12 @@ class RosApi:
 
     def l2tp_server_traffic(self):
         l2tp_server_traffic_list = []
-        for interface in self.l2tp_server_list():
-            if interface['running'] == 'true':
-                traffic = self.api.get_resource('/interface').call('monitor-traffic',
-                                                                   {'interface': interface['name'], 'once': ''})[0]
-                l2tp_server_traffic_list.append(traffic)
+        if self.l2tp == 'True':
+            for interface in self.l2tp_server_list():
+                if interface['running'] == 'true':
+                    traffic = self.api.get_resource('/interface').call('monitor-traffic',
+                                                                       {'interface': interface['name'], 'once': ''})[0]
+                    l2tp_server_traffic_list.append(traffic)
         return self.create_list_dictionaries(l2tp_server_traffic_list)
 
     def l2tp_server_list(self):
@@ -122,12 +161,10 @@ class RosApi:
         return interface_list
 
     def l2tp_server_count(self):
-        count = [{'count': len(self.l2tp_server_list())}]
+        count = []
+        if self.l2tp == 'True':
+            count = [{'count': len(self.l2tp_server_list())}]
         return self.create_list_dictionaries(count)
-
-
-routerboards = [{'ip': '192.168.1.1', 'username': 'prometheus', 'password': 'QWErty987', 'plaintext_login': 'True'},
-                {'ip': '192.168.1.2', 'username': 'prometheus', 'password': 'QWErty987', 'plaintext_login': 'True'}]
 
 
 class RouterOSCollector(object):
@@ -188,6 +225,7 @@ class RouterOSCollector(object):
     def collect(self):
         # metrics
         interface_traffic = self.get(func=RosApi.interface_traffic)
+        wireless_traffic = self.get(func=RosApi.caps_man_traffic) + self.get(func=RosApi.wireless_traffic)
         gre_traffic = self.get(func=RosApi.gre_traffic)
         l2tp_server_traffic = self.get(func=RosApi.l2tp_server_traffic)
         system_resource = self.get(RosApi.system_resource)
@@ -197,6 +235,10 @@ class RouterOSCollector(object):
                                           interface_traffic, 'rx_bits_per_second', ['name'])
         yield self.create_gauge_collector('tx_bits_per_second', 'tx_bits_per_second from monitor_traffic',
                                           interface_traffic, 'tx_bits_per_second', ['name'])
+        yield self.create_gauge_collector('wifi_rx_bits_per_second', 'rx_bits_per_second from monitor_traffic',
+                                          wireless_traffic, 'rx_bits_per_second', ['name'])
+        yield self.create_gauge_collector('wifi_tx_bits_per_second', 'tx_bits_per_second from monitor_traffic',
+                                          wireless_traffic, 'tx_bits_per_second', ['name'])
         yield self.create_gauge_collector('gre_rx_bits_per_second', 'rx_bits_per_second from monitor_traffic',
                                           gre_traffic, 'rx_bits_per_second', ['name'])
         yield self.create_gauge_collector('gre_tx_bits_per_second', 'tx_bits_per_second from monitor_traffic',
@@ -223,12 +265,13 @@ class RouterOSCollector(object):
         yield self.create_info_collector('system_identity', 'system_identity', self.get(RosApi.system_identity),
                                          ['name'])
         yield self.create_info_collector('routerboard', 'routerboard_info', self.get(RosApi.routerboard),
-                                         list(self.get(RosApi.routerboard)[0].keys()))
+                                         ['routerboard_name', 'routerboard', 'board_name', 'model', 'serial_number',
+                                          'firmware_type', 'factory_firmware', 'current_firmware', 'upgrade_firmware']
+                                         )
         self.reconnect()
 
 
-def run(server_class=HTTPServer,
-        handler_class=MetricsHandler, port=8000):
+def run(server_class=HTTPServer, handler_class=MetricsHandler, port=8000):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     httpd.serve_forever()
